@@ -18,6 +18,8 @@ org.quartz.threadPool.threadCount = 3
 # JobStore properties
 org.quartz.jobStore.class = org.quartz.simpl.RAMJobStore
 
+# My job code
+
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -30,7 +32,9 @@ public class MyJob implements Job {
 }
 
 
-***********
+# Scheduler context listner
+
+
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
@@ -91,7 +95,8 @@ public class QuartzListener implements ServletContextListener {
     }
 }
 
-web.xml
+# Web.xml changes
+
 <listener>
     <listener-class>com.example.QuartzListener</listener-class>
 </listener>
