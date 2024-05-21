@@ -5,12 +5,12 @@
         <version>2.3.2</version>
     </dependency>
     <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <version>1.4.200</version>
-        <scope>runtime</scope>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc8</artifactId>
+        <version>19.8.0.0</version>
     </dependency>
 </dependencies>
+
 
 
 # Scheduler name and instance ID
@@ -24,7 +24,7 @@ org.quartz.threadPool.threadPriority = 5
 
 # JobStore configuration
 org.quartz.jobStore.class = org.quartz.impl.jdbcjobstore.JobStoreTX
-org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.oracle.OracleDelegate
 org.quartz.jobStore.useProperties = false
 org.quartz.jobStore.dataSource = myDS
 org.quartz.jobStore.tablePrefix = QRTZ_
@@ -32,50 +32,68 @@ org.quartz.jobStore.isClustered = true
 org.quartz.jobStore.clusterCheckinInterval = 20000
 
 # DataSource configuration
-org.quartz.dataSource.myDS.driver = org.h2.Driver
-org.quartz.dataSource.myDS.URL = jdbc:h2:mem:quartz_db;DB_CLOSE_DELAY=-1
-org.quartz.dataSource.myDS.user = sa
-org.quartz.dataSource.myDS.password = 
+org.quartz.dataSource.myDS.driver = oracle.jdbc.OracleDriver
+org.quartz.dataSource.myDS.URL = jdbc:oracle:thin:@//localhost:1521/xe
+org.quartz.dataSource.myDS.user = myusername
+org.quartz.dataSource.myDS.password = mypassword
 org.quartz.dataSource.myDS.maxConnections = 5
 
 
 
--- Quartz tables for H2 database
-CREATE TABLE QRTZ_JOB_DETAILS (
-  SCHED_NAME VARCHAR(120) NOT NULL,
-  JOB_NAME VARCHAR(200) NOT NULL,
-  JOB_GROUP VARCHAR(200) NOT NULL,
-  DESCRIPTION VARCHAR(250) NULL,
-  JOB_CLASS_NAME VARCHAR(250) NOT NULL,
-  IS_DURABLE BOOLEAN NOT NULL,
-  IS_NONCONCURRENT BOOLEAN NOT NULL,
-  IS_UPDATE_DATA BOOLEAN NOT NULL,
-  REQUESTS_RECOVERY BOOLEAN NOT NULL,
-  JOB_DATA BLOB NULL,
-  PRIMARY KEY (SCHED_NAME,JOB_NAME,JOB_GROUP)
-);
+-- Quartz tables for Oracle database
 
-CREATE TABLE QRTZ_TRIGGERS (
-  SCHED_NAME VARCHAR(120) NOT NULL,
-  TRIGGER_NAME VARCHAR(200) NOT NULL,
-  TRIGGER_GROUP VARCHAR(200) NOT NULL,
-  JOB_NAME VARCHAR(200) NOT NULL,
-  JOB_GROUP VARCHAR(200) NOT NULL,
-  DESCRIPTION VARCHAR(250) NULL,
-  NEXT_FIRE_TIME BIGINT NULL,
-  PREV_FIRE_TIME BIGINT NULL,
-  PRIORITY INTEGER NULL,
-  TRIGGER_STATE VARCHAR(16) NOT NULL,
-  TRIGGER_TYPE VARCHAR(8) NOT NULL,
-  START_TIME BIGINT NOT NULL,
-  END_TIME BIGINT NULL,
-  CALENDAR_NAME VARCHAR(200) NULL,
-  MISFIRE_INSTR SMALLINT NULL,
-  JOB_DATA BLOB NULL,
-  PRIMARY KEY (SCHED_NAME,TRIGGER_NAME,TRIGGER_GROUP)
-);
+CREATE TABLE QRTZ_JOB_DETAILS
+  (
+    SCHED_NAME VARCHAR2(120) NOT NULL,
+    JOB_NAME VARCHAR2(200) NOT NULL,
+    JOB_GROUP VARCHAR2(200) NOT NULL,
+    DESCRIPTION VARCHAR2(250) NULL,
+    JOB_CLASS_NAME VARCHAR2(250) NOT NULL,
+    IS_DURABLE VARCHAR2(1) NOT NULL,
+    IS_NONCONCURRENT VARCHAR2(1) NOT NULL,
+    IS_UPDATE_DATA VARCHAR2(1) NOT NULL,
+    REQUESTS_RECOVERY VARCHAR2(1) NOT NULL,
+    JOB_DATA BLOB NULL,
+    PRIMARY KEY (SCHED_NAME,JOB_NAME,JOB_GROUP)
+  );
+
+CREATE TABLE QRTZ_TRIGGERS
+  (
+    SCHED_NAME VARCHAR2(120) NOT NULL,
+    TRIGGER_NAME VARCHAR2(200) NOT NULL,
+    TRIGGER_GROUP VARCHAR2(200) NOT NULL,
+    JOB_NAME VARCHAR2(200) NOT NULL,
+    JOB_GROUP VARCHAR2(200) NOT NULL,
+    DESCRIPTION VARCHAR2(250) NULL,
+    NEXT_FIRE_TIME NUMBER(13) NULL,
+    PREV_FIRE_TIME NUMBER(13) NULL,
+    PRIORITY NUMBER(13) NULL,
+    TRIGGER_STATE VARCHAR2(16) NOT NULL,
+    TRIGGER_TYPE VARCHAR2(8) NOT NULL,
+    START_TIME NUMBER(13) NOT NULL,
+    END_TIME NUMBER(13) NULL,
+    CALENDAR_NAME VARCHAR2(200) NULL,
+    MISFIRE_INSTR NUMBER(2) NULL,
+    JOB_DATA BLOB NULL,
+    PRIMARY KEY (SCHED_NAME,TRIGGER_NAME,TRIGGER_GROUP)
+  );
 
 -- Additional tables required for clustering...
+
+CREATE TABLE QRTZ_SIMPLE_TRIGGERS
+  (
+    SCHED_NAME VARCHAR2(120) NOT NULL,
+    TRIGGER_NAME VARCHAR2(200) NOT NULL,
+    TRIGGER_GROUP VARCHAR2(200) NOT NULL,
+    REPEAT_COUNT NUMBER(7) NOT NULL,
+    REPEAT_INTERVAL NUMBER(13) NOT NULL,
+    TIMES_TRIGGERED NUMBER(10) NOT NULL,
+    FOREIGN KEY (SCHED_NAME,TRIGGER_NAME,TRIGGER_GROUP) REFERENCES QRTZ_TRIGGERS(SCHED_NAME,TRIGGER_NAME,TRIGGER_GROUP)
+  );
+
+-- Other necessary tables are defined similarly
+
+
 
 
 
@@ -145,3 +163,9 @@ public class QuartzListener implements ServletContextListener {
 }
 
 
+
+
+
+<listener>
+    <listener-class>com.example.QuartzListener</listener-class>
+</listener>
