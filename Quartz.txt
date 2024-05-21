@@ -236,3 +236,110 @@ public class MyJob implements Job {
 <listener>
     <listener-class>com.example.QuartzListener</listener-class>
 </listener>
+
+
+
+
+
+
+# Scheduler name and instance ID
+org.quartz.scheduler.instanceName = MyClusteredScheduler
+org.quartz.scheduler.instanceId = AUTO
+
+# Thread pool configuration
+org.quartz.threadPool.class = org.quartz.simpl.SimpleThreadPool
+org.quartz.threadPool.threadCount = 10
+org.quartz.threadPool.threadPriority = 5
+
+# JobStore configuration
+org.quartz.jobStore.class = org.quartz.impl.jdbcjobstore.JobStoreTX
+org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.oracle.OracleDelegate
+org.quartz.jobStore.useProperties = false
+org.quartz.jobStore.dataSource = myDS
+org.quartz.jobStore.tablePrefix = QRTZ_
+org.quartz.jobStore.isClustered = true
+org.quartz.jobStore.clusterCheckinInterval = 20000
+
+# DataSource configuration using JNDI
+org.quartz.dataSource.myDS.jndiURL = java:comp/env/jdbc/QuartzDS
+org.quartz.dataSource.myDS.java.naming.factory.initial = com.sun.jndi.rmi.registry.RegistryContextFactory
+
+
+
+
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
+import java.io.IOException;
+import java.util.Properties;
+
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+
+@WebListener
+public class QuartzListener implements ServletContextListener {
+
+    private Scheduler scheduler;
+
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        try {
+            // Determine the environment (e.g., from a system property or environment variable)
+            String environment = System.getenv("QUARTZ_ENV");
+            if (environment == null || environment.isEmpty()) {
+                environment = "dev"; // default to dev if not set
+            }
+
+            // Load properties
+            Properties properties = QuartzPropertiesLoader.loadProperties(environment);
+
+            // Initialize the Quartz Scheduler with loaded properties
+            StdSchedulerFactory factory = new StdSchedulerFactory();
+            factory.initialize(properties);
+            scheduler = factory.getScheduler();
+
+            // Define the job and tie it to our MyJob class
+            JobDetail job = JobBuilder.newJob(MyJob.class)
+                .withIdentity("myJob", "group1")
+                .build();
+
+            // Trigger the job to run now, and then every 40 seconds
+            Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("myTrigger", "group1")
+                .startNow()
+                .withSchedule(simpleSchedule()
+                    .withIntervalInSeconds(40)
+                    .repeatForever())
+                .build();
+
+            // Schedule the job using the scheduler
+            scheduler.scheduleJob(job, trigger);
+
+            // Start the scheduler
+            scheduler.start();
+        } catch (SchedulerException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        try {
+            if (scheduler != null) {
+                scheduler.shutdown();
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
