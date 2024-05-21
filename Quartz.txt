@@ -343,3 +343,125 @@ public class QuartzListener implements ServletContextListener {
 
 
 
+
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+
+public class RetrieveSuccessJob implements Job {
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        // Logic to retrieve successful data
+        System.out.println("Retrieving successful data...");
+        // Your code here
+    }
+}
+
+
+
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+
+public class RetrieveFailureJob implements Job {
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        // Logic to retrieve failure data
+        System.out.println("Retrieving failure data...");
+        // Your code here
+    }
+}
+
+
+
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
+import java.io.IOException;
+import java.util.Properties;
+
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+
+@WebListener
+public class QuartzListener implements ServletContextListener {
+
+    private Scheduler scheduler;
+
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        try {
+            // Determine the environment (e.g., from a system property or environment variable)
+            String environment = System.getenv("QUARTZ_ENV");
+            if (environment == null || environment.isEmpty()) {
+                environment = "dev"; // default to dev if not set
+            }
+
+            // Load properties
+            Properties properties = QuartzPropertiesLoader.loadProperties(environment);
+
+            // Initialize the Quartz Scheduler with loaded properties
+            StdSchedulerFactory factory = new StdSchedulerFactory();
+            factory.initialize(properties);
+            scheduler = factory.getScheduler();
+
+            // Define the job and tie it to our RetrieveSuccessJob class
+            JobDetail successJob = JobBuilder.newJob(RetrieveSuccessJob.class)
+                .withIdentity("retrieveSuccessJob", "group1")
+                .build();
+
+            // Define the job and tie it to our RetrieveFailureJob class
+            JobDetail failureJob = JobBuilder.newJob(RetrieveFailureJob.class)
+                .withIdentity("retrieveFailureJob", "group2")
+                .build();
+
+            // Trigger for the success job to run now, and then every 40 seconds
+            Trigger successTrigger = TriggerBuilder.newTrigger()
+                .withIdentity("successTrigger", "group1")
+                .startNow()
+                .withSchedule(simpleSchedule()
+                    .withIntervalInSeconds(40)
+                    .repeatForever())
+                .build();
+
+            // Trigger for the failure job to run now, and then every 60 seconds
+            Trigger failureTrigger = TriggerBuilder.newTrigger()
+                .withIdentity("failureTrigger", "group2")
+                .startNow()
+                .withSchedule(simpleSchedule()
+                    .withIntervalInSeconds(60)
+                    .repeatForever())
+                .build();
+
+            // Schedule the jobs using the scheduler
+            scheduler.scheduleJob(successJob, successTrigger);
+            scheduler.scheduleJob(failureJob, failureTrigger);
+
+            // Start the scheduler
+            scheduler.start();
+        } catch (SchedulerException | IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        try {
+            if (scheduler != null) {
+                scheduler.shutdown();
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
