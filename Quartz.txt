@@ -32,11 +32,21 @@ org.quartz.jobStore.isClustered = true
 org.quartz.jobStore.clusterCheckinInterval = 20000
 
 # DataSource configuration
-org.quartz.dataSource.myDS.driver = oracle.jdbc.OracleDriver
-org.quartz.dataSource.myDS.URL = jdbc:oracle:thin:@//localhost:1521/xe
-org.quartz.dataSource.myDS.user = myusername
-org.quartz.dataSource.myDS.password = mypassword
+org.quartz.dataSource.myDS.driver = ${db.driver}
+org.quartz.dataSource.myDS.URL = ${db.url}
+org.quartz.dataSource.myDS.user = ${db.user}
+org.quartz.dataSource.myDS.password = ${db.password}
 org.quartz.dataSource.myDS.maxConnections = 5
+
+
+Create separate properties files for each environment, e.g., quartz-dev.properties, quartz-test.properties, and quartz-prod.properties.
+
+db.driver = oracle.jdbc.OracleDriver
+db.url = jdbc:oracle:thin:@//dev-host:1521/devdb
+db.user = devuser
+db.password = devpassword
+
+
 
 
 
@@ -96,6 +106,42 @@ CREATE TABLE QRTZ_SIMPLE_TRIGGERS
 
 
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class QuartzPropertiesLoader {
+
+    public static Properties loadProperties(String environment) throws IOException {
+        Properties properties = new Properties();
+
+        // Load common properties
+        try (InputStream commonPropsStream = QuartzPropertiesLoader.class.getClassLoader().getResourceAsStream("quartz.properties")) {
+            if (commonPropsStream != null) {
+                properties.load(commonPropsStream);
+            } else {
+                throw new IOException("Common quartz.properties file not found.");
+            }
+        }
+
+        // Load environment-specific properties
+        String envPropsFileName = "quartz-" + environment + ".properties";
+        try (InputStream envPropsStream = QuartzPropertiesLoader.class.getClassLoader().getResourceAsStream(envPropsFileName)) {
+            if (envPropsStream != null) {
+                Properties envProperties = new Properties();
+                envProperties.load(envPropsStream);
+                properties.putAll(envProperties);
+            } else {
+                throw new IOException("Environment-specific properties file not found: " + envPropsFileName);
+            }
+        }
+
+        return properties;
+    }
+}
+
+
+
 
 import org.quartz.JobBuilder;
 import org.quartz.JobDetail;
@@ -108,6 +154,8 @@ import org.quartz.impl.StdSchedulerFactory;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
+import java.io.IOException;
+import java.util.Properties;
 
 import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
 
@@ -119,11 +167,18 @@ public class QuartzListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         try {
-            // Load the Quartz properties
-            StdSchedulerFactory factory = new StdSchedulerFactory();
-            factory.initialize("quartz.properties");
+            // Determine the environment (e.g., from a system property or environment variable)
+            String environment = System.getenv("QUARTZ_ENV");
+            if (environment == null || environment.isEmpty()) {
+                environment = "dev"; // default to dev if not set
+            }
 
-            // Get a scheduler instance
+            // Load properties
+            Properties properties = QuartzPropertiesLoader.loadProperties(environment);
+
+            // Initialize the Quartz Scheduler with loaded properties
+            StdSchedulerFactory factory = new StdSchedulerFactory();
+            factory.initialize(properties);
             scheduler = factory.getScheduler();
 
             // Define the job and tie it to our MyJob class
@@ -145,7 +200,7 @@ public class QuartzListener implements ServletContextListener {
 
             // Start the scheduler
             scheduler.start();
-        } catch (SchedulerException e) {
+        } catch (SchedulerException | IOException e) {
             e.printStackTrace();
         }
     }
@@ -159,6 +214,18 @@ public class QuartzListener implements ServletContextListener {
         } catch (SchedulerException e) {
             e.printStackTrace();
         }
+    }
+}
+
+
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+
+public class MyJob implements Job {
+    @Override
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        System.out.println("Hello, Quartz! Executing MyJob.");
     }
 }
 
