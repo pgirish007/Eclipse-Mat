@@ -1,0 +1,31 @@
+<%@ page import="java.util.Date" %>
+<%
+    // Get the current time in milliseconds
+    long currentTime = System.currentTimeMillis();
+
+    // Retrieve the last action time from the session
+    Long lastActionTime = (Long) session.getAttribute("lastActionTime");
+
+    if (lastActionTime != null) {
+        // Calculate the time difference in milliseconds
+        long timeDifference = currentTime - lastActionTime;
+
+        // Convert 30 minutes to milliseconds
+        long thirtyMinutesInMillis = 30 * 60 * 1000;
+
+        // Check if the time difference exceeds 30 minutes
+        if (timeDifference > thirtyMinutesInMillis) {
+            // 30 minutes have passed since the last action
+            out.println("It has been more than 30 minutes since the last action.");
+        } else {
+            // Less than 30 minutes have passed
+            out.println("Last action was within the past 30 minutes.");
+        }
+    } else {
+        // No last action time found, this might be a new session
+        out.println("No action has been recorded yet.");
+    }
+
+    // Update the session with the current time as the last action time
+    session.setAttribute("lastActionTime", currentTime);
+%>
