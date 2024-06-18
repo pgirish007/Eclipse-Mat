@@ -1,4 +1,19 @@
 <%@ page import="java.util.Date" %>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Action Time Checker</title>
+    <script type="text/javascript">
+        function withinThirtyMinutes() {
+            alert("Last action was within the past 30 minutes.");
+        }
+
+        function beyondThirtyMinutes() {
+            alert("It has been more than 30 minutes since the last action.");
+        }
+    </script>
+</head>
+<body>
 <%
     // Get the current time in milliseconds
     long currentTime = System.currentTimeMillis();
@@ -16,10 +31,10 @@
         // Check if the time difference exceeds 30 minutes
         if (timeDifference > thirtyMinutesInMillis) {
             // 30 minutes have passed since the last action
-            out.println("It has been more than 30 minutes since the last action.");
+            out.println("<script type='text/javascript'>beyondThirtyMinutes();</script>");
         } else {
             // Less than 30 minutes have passed
-            out.println("Last action was within the past 30 minutes.");
+            out.println("<script type='text/javascript'>withinThirtyMinutes();</script>");
         }
     } else {
         // No last action time found, this might be a new session
@@ -29,3 +44,5 @@
     // Update the session with the current time as the last action time
     session.setAttribute("lastActionTime", currentTime);
 %>
+</body>
+</html>
