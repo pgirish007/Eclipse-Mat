@@ -436,3 +436,40 @@ public class QuartzListener implements ServletContextListener {
 
 
 
+
+*************
+
+
+
+import javax.annotation.Resource;
+import javax.ejb.Stateless;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+@Stateless
+public class MyBean {
+
+    @Resource(lookup = "java:/jdbc/MyOracleDS")
+    private DataSource dataSource;
+
+    public void fetchData() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT * FROM my_table");
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                // Process the result set
+                System.out.println("Data: " + resultSet.getString("column_name"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+
+
