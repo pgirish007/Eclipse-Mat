@@ -1,0 +1,48 @@
+class Parent {
+    public static void staticMethod() {
+        System.out.println("Parent's static method called");
+    }
+
+    public void instanceMethod() {
+        System.out.println("Parent's instance method called");
+    }
+
+    public void overloadedMethod(Number n) {
+        System.out.println("Parent's overloaded method with Number called");
+    }
+}
+
+class Child extends Parent {
+    public static void staticMethod() {
+        System.out.println("Child's static method called");
+    }
+
+    @Override
+    public void instanceMethod() {
+        System.out.println("Child's instance method called");
+    }
+
+    public void overloadedMethod(Integer i) {
+        System.out.println("Child's overloaded method with Integer called");
+    }
+}
+
+public class MethodTest {
+    public static void main(String[] args) {
+        Parent parent = new Parent();
+        Parent childAsParent = new Child();
+        Child child = new Child();
+
+        parent.staticMethod(); // Question 1
+        childAsParent.staticMethod(); // Question 2
+        child.staticMethod(); // Question 3
+
+        parent.instanceMethod(); // Question 4
+        childAsParent.instanceMethod(); // Question 5
+        child.instanceMethod(); // Question 6
+
+        parent.overloadedMethod(10); // Question 7
+        childAsParent.overloadedMethod(10); // Question 8
+        child.overloadedMethod(10); // Question 9
+    }
+}
