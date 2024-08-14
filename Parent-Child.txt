@@ -46,3 +46,99 @@ public class MethodTest {
         child.overloadedMethod(10); // Question 9
     }
 }
+
+
+
+/******/
+
+import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionListener;
+import javax.servlet.http.HttpSession;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
+public class SessionDataSizeListener implements HttpSessionListener {
+    private static final Map<String, Double> sessionDataSizeMap = new HashMap<>();
+
+    @Override
+    public void sessionCreated(HttpSessionEvent se) {
+        HttpSession session = se.getSession();
+        sessionDataSizeMap.put(session.getId(), calculateSessionDataSize(session));
+    }
+
+    @Override
+    public void sessionDestroyed(HttpSessionEvent se) {
+        sessionDataSizeMap.remove(se.getSession().getId());
+    }
+
+    public static double calculateSessionDataSize(HttpSession session) {
+        long totalSizeBytes = 0;
+        Enumeration<String> attributeNames = session.getAttributeNames();
+        while (attributeNames.hasMoreElements()) {
+            String attributeName = attributeNames.nextElement();
+            Object attribute = session.getAttribute(attributeName);
+            totalSizeBytes += getObjectSize(attribute);
+        }
+        return bytesToMB(totalSizeBytes);
+    }
+
+    private static long getObjectSize(Object obj) {
+        // Basic estimation: you might need a more sophisticated method for accurate results
+        if (obj == null) return 0;
+        return obj.toString().getBytes().length;
+    }
+
+    public static double getSessionDataSize(String sessionId) {
+        return sessionDataSizeMap.getOrDefault(sessionId, 0.0);
+    }
+
+    private static double bytesToMB(long bytes) {
+        return bytes / (1024.0 * 1024.0);
+    }
+}
+
+
+/***/
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.ServletContext;
+import java.util.Enumeration;
+
+public class ContextDataSizeListener implements ServletContextListener {
+    @Override
+    public void contextInitialized(ServletContextEvent sce) {
+        ServletContext context = sce.getServletContext();
+        double sizeMB = calculateContextDataSize(context);
+        context.setAttribute("contextDataSizeMB", sizeMB);
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        // Cleanup if needed
+    }
+
+    public static double calculateContextDataSize(ServletContext context) {
+        long totalSizeBytes = 0;
+        Enumeration<String> attributeNames = context.getAttributeNames();
+        while (attributeNames.hasMoreElements()) {
+            String attributeName = attributeNames.nextElement();
+            Object attribute = context.getAttribute(attributeName);
+            totalSizeBytes += getObjectSize(attribute);
+        }
+        return bytesToMB(totalSizeBytes);
+    }
+
+    private static long getObjectSize(Object obj) {
+        // Basic estimation: you might need a more sophisticated method for accurate results
+        if (obj == null) return 0;
+        return obj.toString().getBytes().length;
+    }
+
+    private static double bytesToMB(long bytes) {
+        return bytes / (1024.0 * 1024.0);
+    }
+}
+
+
