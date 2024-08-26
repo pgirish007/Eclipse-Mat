@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Status</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        .status {
+            margin-left: 10px;
+        }
+        .loading {
+            margin-left: 10px;
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background: url('loading.gif') no-repeat center center; /* Use an actual loading GIF */
+            background-size: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Example service names with adjacent divs for status and loading indicator -->
+    <div id="services">
+        <div id="service1">
+            <span>Service 1</span>
+            <span class="loading"></span> <!-- Loading indicator -->
+            <div class="status"></div>
+        </div>
+        <div id="service2">
+            <span>Service 2</span>
+            <span class="loading"></span> <!-- Loading indicator -->
+            <div class="status"></div>
+        </div>
+        <!-- Add more services as needed -->
+    </div>
+
+    <script>
+        // Function to check the status of each service
+        function checkServicesStatus(serviceNames) {
+            serviceNames.forEach(serviceName => {
+                // Show loading indicator
+                $(`#${serviceName} .loading`).show();
+
+                $.ajax({
+                    url: `https://example.com/api/${serviceName}`, // Replace with actual REST API endpoint
+                    method: 'GET',
+                    success: function(response) {
+                        // Hide loading indicator
+                        $(`#${serviceName} .loading`).hide();
+                        // Update status to success
+                        $(`#${serviceName} .status`).text('Success').css('color', 'green');
+                    },
+                    error: function(xhr, status, error) {
+                        // Hide loading indicator
+                        $(`#${serviceName} .loading`).hide();
+
+                        // Display error message based on the status code
+                        if (xhr.status === 404) {
+                            $(`#${serviceName} .status`).text('404 Not Found').css('color', 'red');
+                        } else if (xhr.status === 500) {
+                            $(`#${serviceName} .status`).text('500 Internal Server Error').css('color', 'red');
+                        } else if (xhr.status === 403) {
+                            $(`#${serviceName} .status`).text('403 Forbidden').css('color', 'red');
+                        } else {
+                            $(`#${serviceName} .status`).text('Error: ' + xhr.status).css('color', 'red');
+                        }
+                    }
+                });
+            });
+        }
+
+        // Example usage
+        const services = ['service1', 'service2']; // Replace with actual service names
+        checkServicesStatus(services);
+    </script>
+
+</body>
+</html>
