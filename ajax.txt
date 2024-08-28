@@ -78,3 +78,49 @@
 
 </body>
 </html>
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Iframe After Page is Available</title>
+    <style>
+        /* Hide the iframe initially */
+        iframe {
+            display: none;
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+
+        /* Optionally, you can use a class to control visibility */
+        .visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Page Content</h1>
+    <p>Some content before the iframe is loaded.</p>
+
+    <!-- Iframe that will be hidden until it's fully loaded -->
+    <iframe id="myIframe" src="https://www.example.com"></iframe>
+
+    <script>
+        // Get the iframe element
+        const iframe = document.getElementById('myIframe');
+
+        // Add a load event listener to the iframe
+        iframe.addEventListener('load', function() {
+            // Show the iframe once the content is fully loaded
+            iframe.classList.add('visible');
+        });
+    </script>
+
+</body>
+</html>
